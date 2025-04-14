@@ -1,17 +1,16 @@
-FROM openjdk:17-jdk-slim
+FROM openjdk:17
  
-# Install dependencies
-RUN apt-get update && apt-get install -y git maven unzip curl
+# Install Python & Azure SDK
+RUN apt-get update && apt-get install -y python3 python3-pip
+RUN pip3 install azure-storage-blob
  
-# Clone Synthea
-RUN git clone https://github.com/synthetichealth/synthea.git /opt/synthea
+# Copy Synthea
 WORKDIR /opt/synthea
+COPY . .
  
-# Build Synthea
-RUN ./gradlew build check test shadowJar
+# Add the upload script
+COPY upload_to_blob.py /opt/upload_to_blob.py
  
-# Environment variable (default)
-ENV PATIENT_COUNT=10
+# Run Synthea and then upload results to Blob
+CMD java -jar ./build/libs/synthea-with-dependencies.jar -p 5 && python3 /opt/upload_to_blob.py
  
-# Run Synthea
-CMD java -jar ./build/libs/synthea-with-dependencies.jar -p $PATIENT_COUNT
